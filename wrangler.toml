@@ -1,0 +1,15 @@
+name = "erudite-guest-counter"
+main = "cloudflare/worker.js"
+compatibility_date = "2026-06-27"
+
+routes = [
+  { pattern = "counter.erudite26.com", custom_domain = true }
+]
+
+[vars]
+ALLOWED_ORIGINS = "https://erudite26.com,https://www.erudite26.com,https://kz9979.github.io"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "erudite-guest-counter"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
