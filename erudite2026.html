@@ -17,6 +17,7 @@
   <meta name="twitter:description" content="Wadah sokongan digital untuk pelajar puteri ERUDITE 2226 menuju SPM 2026." />
   <meta name="twitter:image" content="https://arleta.site/interactivelink/2276/photo-rasmi-batch-erudite.jpeg" />
   <meta name="theme-color" content="#0d0407" />
+  <meta name="erudite-counter-endpoint" content="https://counter.erudite26.com/api/guest" />
   <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22ERUDITE%202226%22%2C%22short_name%22%3A%22ERUDITE%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0407%22%2C%22theme_color%22%3A%22%230d0407%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Farleta.site%2Finteractivelink%2F2276%2Ferudite-logo.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D" />
   <link rel="apple-touch-icon" href="https://arleta.site/interactivelink/2276/erudite-logo.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -350,6 +351,11 @@ body.gallery-open{overflow:hidden}
 /* FOOTER */
     footer{border-top:1px solid var(--line);padding:40px 0;text-align:center;color:var(--muted2);font-size:.88rem;position:relative;z-index:1}
     footer strong{color:var(--rose2)}
+    .guest-counter{margin:18px auto 4px;display:inline-flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:10px 16px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.055)}
+    .guest-counter-label{color:var(--muted);font-weight:700}
+    .guest-counter-value{min-width:2ch;color:var(--rose2);font-family:var(--fm);font-size:1.05rem}
+    .guest-counter-status{color:var(--muted2);font-size:.76rem}
+    .guest-counter-dot{width:6px;height:6px;border-radius:50%;background:var(--rose);box-shadow:0 0 10px rgba(232,149,110,.7)}
     .backtop{position:fixed;right:18px;bottom:18px;z-index:90;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(15,6,9,.85);backdrop-filter:blur(14px);color:var(--rose2);font-size:1.1rem;display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:all .25s}
     .backtop:hover{border-color:var(--line2);transform:translateY(-3px)}
 
@@ -1165,6 +1171,14 @@ body.gallery-open{overflow:hidden}
   <div class="container footer-inner">
     <div class="footer-row footer-copyright">Hak Cipta ERUDITE 2226</div>
     <div class="footer-row footer-motto">Rise by Lifting Others</div>
+    <div class="guest-counter" role="status" aria-live="polite">
+      <span class="guest-counter-dot" aria-hidden="true"></span>
+      <span class="guest-counter-label" data-lang="ms">Pelawat unik</span>
+      <span class="guest-counter-label" data-lang="en">Unique visitors</span>
+      <strong class="guest-counter-value" id="guestCounterValue">—</strong>
+      <span class="guest-counter-status" id="guestCounterStatusMs" data-lang="ms">Memuat...</span>
+      <span class="guest-counter-status" id="guestCounterStatusEn" data-lang="en">Loading...</span>
+    </div>
     <div class="footer-row footer-note" data-lang="ms">Platform digital ibu bapa menyokong ERUDITE menuju SPM 2026.</div>
     <div class="footer-row footer-note" data-lang="en">A digital parent support platform for ERUDITE towards SPM 2026.</div>
   </div>
@@ -1185,6 +1199,60 @@ body.gallery-open{overflow:hidden}
 <!-- FLOATING MUSIC BUTTON -->
 <button class="music-fab" id="musicFab" onclick="toggleMusic()" title="Lagu ERUDITE 2226">🎵</button>
 <div class="music-tooltip">Lagu ERUDITE 2226</div>
+
+<!-- GLOBAL GUEST COUNTER (Cloudflare Worker + D1) -->
+<script>
+(() => {
+  const endpoint = document.querySelector('meta[name="erudite-counter-endpoint"]')?.content?.trim();
+  const valueEl = document.getElementById('guestCounterValue');
+  const statusMs = document.getElementById('guestCounterStatusMs');
+  const statusEn = document.getElementById('guestCounterStatusEn');
+  if (!endpoint || !valueEl || !statusMs || !statusEn) return;
+
+  const setStatus = (ms, en) => {
+    statusMs.textContent = ms;
+    statusEn.textContent = en;
+  };
+
+  try {
+    const storageKey = 'erudite_unique_guest_id';
+    let visitorId = localStorage.getItem(storageKey);
+    if (!visitorId) {
+      const randomPart = crypto.randomUUID?.() ||
+        Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
+      visitorId = 'erudite_' + randomPart;
+      localStorage.setItem(storageKey, visitorId);
+    }
+
+    fetch(endpoint, {
+      method: 'POST',
+      mode: 'cors',
+      cache: 'no-store',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({visitorId})
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error('Counter request failed: ' + response.status);
+        return response.json();
+      })
+      .then(data => {
+        if (!Number.isSafeInteger(data.count) || data.count < 0) throw new Error('Invalid counter response');
+        const locale = document.documentElement.lang === 'en' ? 'en-MY' : 'ms-MY';
+        valueEl.textContent = new Intl.NumberFormat(locale).format(data.count);
+        setStatus(data.isNew ? 'Terima kasih kerana berkunjung' : 'Selamat kembali', data.isNew ? 'Thanks for visiting' : 'Welcome back');
+      })
+      .catch(error => {
+        console.error('[ERUDITE guest counter]', error);
+        valueEl.textContent = '—';
+        setStatus('Tidak tersedia', 'Unavailable');
+      });
+  } catch (error) {
+    console.error('[ERUDITE guest counter storage]', error);
+    valueEl.textContent = '—';
+    setStatus('Tidak tersedia', 'Unavailable');
+  }
+})();
+</script>
 
 <!-- I18N + UI LOGIC -->
 <script>
