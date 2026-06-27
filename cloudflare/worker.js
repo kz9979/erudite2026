@@ -11,6 +11,11 @@ function allowedOrigins(env) {
   ]);
 }
 
+function baselineCount(env) {
+  const value = Number.parseInt(env.BASELINE_COUNT || "0", 10);
+  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
 function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
   const allowed = allowedOrigins(env);
@@ -90,9 +95,11 @@ export default {
       const total = await env.DB.prepare(
         "SELECT COUNT(*) AS count FROM guests"
       ).first();
+      const trackedCount = Number(total?.count || 0);
+      const baseline = baselineCount(env);
 
       return json(request, env, {
-        count: Number(total?.count || 0),
+        count: baseline + trackedCount,
         isNew,
         countedAt: now
       });
