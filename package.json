@@ -1,0 +1,16 @@
+{
+  "name": "erudite-guest-counter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cf:login": "wrangler login",
+    "cf:create-db": "wrangler d1 create erudite-guest-counter",
+    "cf:init-local": "wrangler d1 execute erudite-guest-counter --local --file=cloudflare/schema.sql",
+    "cf:init-remote": "wrangler d1 execute erudite-guest-counter --remote --file=cloudflare/schema.sql",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
