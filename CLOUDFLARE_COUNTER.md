@@ -2,6 +2,10 @@
 
 The footer counter uses a Cloudflare Worker and D1. It counts one unique guest per browser by storing a random ID in `localStorage`. Reloading the page updates the visit timestamp but does not increase the unique total.
 
+## Historical baseline
+
+`BASELINE_COUNT = "200"` represents an estimated 200 guests from the roughly 40 days before this counter was introduced (five guests per day). This is explicitly an estimate, not an imported analytics measurement. The displayed total is this baseline plus new unique browser records stored in D1.
+
 ## Deploy once
 
 1. Install Node.js 20 or newer.
