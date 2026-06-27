@@ -8,6 +8,7 @@ routes = [
 
 [vars]
 ALLOWED_ORIGINS = "https://erudite26.com,https://www.erudite26.com,https://kz9979.github.io"
+BASELINE_COUNT = "200"
 
 [[d1_databases]]
 binding = "DB"
